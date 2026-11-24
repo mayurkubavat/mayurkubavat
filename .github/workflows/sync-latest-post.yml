@@ -1,0 +1,43 @@
+name: Sync Latest DV Handbook Post
+
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/**'
+      - 'tests/**'
+      - '.github/workflows/sync-latest-post.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run unit tests
+        run: python3 -m unittest discover -s tests -v
+
+      - name: Sync latest post from dvhandbook.blogspot.com
+        run: python3 scripts/update_latest_post.py
+
+      - name: Commit and push if README.md changed
+        run: |
+          if ! git diff --quiet -- README.md; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add README.md
+            git commit -m "chore: sync latest post from dvhandbook.blogspot.com"
+            git push
+          fi
